@@ -1,8 +1,12 @@
 package main
 
 import (
+	"database/sql"
+	"log"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/newrelic/go-agent/_integrations/nrmysql"
 )
 
 func GetDB(batch bool) (*sqlx.DB, error) {
@@ -18,5 +22,12 @@ func GetDB(batch bool) (*sqlx.DB, error) {
 	mysqlConfig.ParseTime = true
 	mysqlConfig.MultiStatements = batch
 
-	return sqlx.Open("mysql", mysqlConfig.FormatDSN())
+	db, err := sql.Open("nrmysql", mysqlConfig.FormatDSN())
+	if err != nil {
+		log.Fatalf("failed to connect to DB: %s.", err.Error())
+	}
+	// defer db.Close()
+	return sqlx.NewDb(db, "nrmysql"), nil
+
+	// return sqlx.Open("mysql", mysqlConfig.FormatDSN())
 }

@@ -19,6 +19,8 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/newrelic/go-agent/v3/integrations/nrecho-v4"
+	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,16 +32,33 @@ const (
 	mysqlErrNumDuplicateEntry = 1062
 )
 
+var (
+	revision string
+	newRelic *newrelic.Application
+)
+
 type handlers struct {
 	DB *sqlx.DB
 }
 
+func init() {
+	fmt.Printf("********** %#v **********\n", revision)
+}
+
 func main() {
+	app, _err := newrelic.NewApplication(newrelic.ConfigAppName("isucon11-final"), newrelic.ConfigLicense("3c9c2bfaa615035f73eac0fc6a4cc1f506bdNRAL"))
+	if _err != nil {
+		fmt.Println(_err)
+		os.Exit(1)
+	}
+	newRelic = app
+
 	e := echo.New()
 	e.Debug = GetEnv("DEBUG", "") == "true"
 	e.Server.Addr = fmt.Sprintf(":%v", GetEnv("PORT", "7000"))
 	e.HideBanner = true
 
+	e.Use(nrecho.Middleware(app))
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte("trapnomura"))))
