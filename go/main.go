@@ -1546,8 +1546,10 @@ func (h *handlers) GetAnnouncementDetail(c echo.Context) error {
 	}
 
 	var registration Registration
-	if err := tx.Get(&registration, "SELECT * FROM `registrations` WHERE `course_id` = ? AND `user_id` = ? LIMIT 1", announcement.CourseID, userID); err != nil {
+	if err := tx.Get(&registration, "SELECT * FROM `registrations` WHERE `course_id` = ? AND `user_id` = ? LIMIT 1", announcement.CourseID, userID); err != nil && err != sql.ErrNoRows {
 		c.Logger().Error(err)
+		return c.NoContent(http.StatusInternalServerError)
+	} else if err == sql.ErrNoRows {
 		return c.String(http.StatusNotFound, "No such announcement.")
 	}
 
